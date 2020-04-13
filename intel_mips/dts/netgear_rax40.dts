@@ -1,0 +1,19 @@
+#include "easy550_anywan.dts"
+
+/ {
+//	model = "Netgear Nighthawk RAX40";
+//	compatible = "netgear,rax40", "lantiq,grx500", "lantiq,xrx500";
+
+};
+
+&pcie0 {
+	reset-gpio = <&gpio0 17 0>;
+};
+
+&pcie1 {
+	reset-gpio = <&gpio0 29 0>;
+};
+
+&pcie2 {
+	reset-gpio = <&gpio0 7 1>;
+};

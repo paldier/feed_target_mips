@@ -4,6 +4,11 @@ FAKEROOT_PROG:=$(if $(CONFIG_PACKAGE_ugw-fakeroot), \
 	ALTPATH="$(STAGING_DIR_ROOT)" CONFFILE="$(STAGING_DIR_HOST)/share/fakeroot/fakeroot.conf" \
 	fakeroot -- $(STAGING_DIR_HOST)/bin/fakeroot.sh)
 
+define Build/rax40sign
+   rax40sign $@
+   mv $@.pega $@
+endef
+
 define Device/xrx500
   $(Device/lantiqFullImage)
   $(Device/NAND)
@@ -244,3 +249,13 @@ endef
 TARGET_DEVICES += easy350550_bootcore
 
 endif
+
+define Device/NETGEAR_RAX40
+  $(Device/xrx500)
+  DEVICE_DTS := netgear_rax40
+  DEVICE_TITLE := Netgear RAX40
+  DEVICE_PACKAGES := $(OWRT_PACKAGES) $(DSL_CPE_PACKAGES)
+  IMAGES := sysupgrade.bin fullimage.img fullimage.signed
+  IMAGE/fullimage.signed = fullimage 16 | check-size $$$$(IMAGE_SIZE) | rax40sign
+endef
+TARGET_DEVICES += NETGEAR_RAX40
