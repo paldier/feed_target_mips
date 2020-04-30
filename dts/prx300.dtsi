@@ -1,0 +1,1471 @@
+#include <dt-bindings/thermal/thermal.h>
+#include <dt-bindings/interrupt-controller/mips-gic.h>
+#include <dt-bindings/clock/intel,prx300-clk.h>
+#include <dt-bindings/pinctrl/intel,equilibrium.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "intel,prx300";
+
+	aliases {
+		serial0 = &asc0;
+		serial1 = &asc1;
+		dma0    = &dma0;
+		dma1    = &dma1tx;
+		dma2    = &dma1rx;
+		dma3    = &dma2tx;
+		dma4    = &dma2rx;
+		pcie0   = &pcie0;
+		pcie1   = &pcie1;
+		spi1	= &ssc1;
+		timer0  = &gptc0;
+		timer1  = &gptc1;
+		i2c0	= &i2c0;
+		i2c1	= &i2c1;
+		i2c2	= &i2c2;
+		qos0	= &qos0;
+		combophy0 = &combophy0;
+	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		/* The bootcore/TEE/4KEc is located in the top most 32MB of
+		 * the 512MB RAM.
+		 * The is influenced by the U-Boot config options:
+		 * CONFIG_PRX300_TOS_32M and CONFIG_PRX300_DDR_512M
+		 */
+		bootcore@3E000000 {
+			reg = <0x3E000000 0x2000000>;
+		};
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu0: cpu@0 {
+			device_type = "cpu";
+			compatible = "mti,interaptiv";
+			default-OS = "LINUX";
+			clocks = <&cgu0 PRX300_CLK_CPU>, <&cgu0 0>;
+			clock-names = "cpufreq", "cpu";
+			clock-latency = <500000>; /* transition latency in ns */
+			operating-points-v2 = <&cpu_opp_table>;
+			cooling-min-level = <0>;
+			cooling-max-level = <2>;
+			#cooling-cells = <2>;
+			reg = <0>;
+		};
+
+		cpu1: cpu@1 {
+			device_type = "cpu";
+			compatible = "mti,interaptiv";
+			default-OS = "LINUX";
+			reg = <1>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 203 IRQ_TYPE_EDGE_RISING>;
+			operating-points-v2 = <&cpu_opp_table>;
+			vmb-fw-ipi = <200>;
+		};
+
+		cpu2: cpu@2 {
+			device_type = "cpu";
+			compatible = "mti,interaptiv";
+			default-OS = "LINUX";
+			reg = <2>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 204 IRQ_TYPE_EDGE_RISING>;
+			operating-points-v2 = <&cpu_opp_table>;
+			vmb-fw-ipi = <201>;
+		};
+
+		cpu3: cpu@3 {
+			device_type = "cpu";
+			compatible = "mti,interaptiv";
+			default-OS = "LINUX";
+			reg = <3>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 205 IRQ_TYPE_EDGE_RISING>;
+			operating-points-v2 = <&cpu_opp_table>;
+			vmb-fw-ipi = <202>;
+		};
+	};
+
+	cpu_opp_table: opp_table {
+		compatible = "operating-points-v2";
+		opp-shared;
+
+		opp@800000000 {
+			opp-hz = /bits/ 64 <800000000>;
+			opp-supported-hw = <0x0000F000>;
+		};
+
+		opp@400000000 {
+			opp-hz = /bits/ 64 <400000000>;
+			opp-supported-hw = <0x0000F000>;
+		};
+
+		opp@200000000 {
+			opp-hz = /bits/ 64 <200000000>;
+			opp-supported-hw = <0x0000F000>;
+		};
+
+		opp@100000000 {
+			opp-hz = /bits/ 64 <100000000>;
+			opp-supported-hw = <0x0000F000>;
+		};
+
+		opp@50000000 {
+			opp-hz = /bits/ 64 <50000000>;
+			opp-supported-hw = <0x0000F000>;
+		};
+	};
+
+	cpu_intc: interrupt-controller {
+		#address-cells = <0>;
+		#interrupt-cells = <1>;
+		interrupt-controller;
+		compatible = "mti,cpu-interrupt-controller";
+	};
+
+	ssx1_0@12000000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "lantiq,ssx", "simple-bus";
+		reg = <0x12000000 0x2000000>; /* 32MB */
+		ranges = <0 0x12000000 0x02000000>;
+
+		gcr@300000 {
+			compatible = "lantiq,gcr-grx500";
+			reg = <0x300000 0x8000>;
+		};
+
+		cpc@310000 {
+			compatible = "lantiq,cpc-grx500";
+			reg = <0x310000 0x6000>;
+		};
+
+		gic: gic@320000 {
+			compatible = "mti,gic";
+			reg = <0x320000 0x20000>;
+			interrupt-controller;
+			#interrupt-cells = <3>;
+			/*
+			 * Declare the interrupt-parent even though the mti,gic
+			 * binding doesn't require it, such that the kernel can
+			 * figure out that cpu_intc is the root interrupt
+			 * controller & should be probed first.
+			 */
+			interrupt-parent = <&cpu_intc>;
+			mti,reserved-ipi-vectors = <56 8>;
+			mti,reserved-list = <200 201 202>;
+			timer {
+				compatible = "mti,gic-timer";
+				interrupts = <GIC_LOCAL 1 IRQ_TYPE_NONE>;
+				clocks = <&cgu0 0>;
+				clock-names = "cpuclk";
+			};
+		};
+
+		gcrcus@3f0000 {
+			compatible = "lantiq,gcrcus-grx500";
+			reg = <0x3f0000 0x200>;
+		};
+
+		watchdog: watchdog@0,0 {
+			#interrupt-cells = <1>;
+			compatible = "lantiq,grx500wdt";
+			reg = <0 0>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_LOCAL 0 IRQ_TYPE_NONE>;
+			timeout-sec = <5>;
+			lantiq,wdt-rcu = <&rcu0>;
+			clocks = <&cgu0 PRX300_CLK_CPU>;
+			clock-names = "freq";
+		};
+	};
+
+	ssx0@14000000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "lantiq,ssx", "simple-bus";
+		reg = <0x14000000 0x2000000>; /* 32MB */
+		ranges = <0x0 0x14000000 0x02000000>;
+
+		sfp_i2c: sfp_i2c@0x50000 {
+			status = "disabled";
+			compatible = "intel,pon-sfp-i2c";
+			resets = <&rcu0 0x48 9>,
+				 <&rcu0 0x48 10>,
+				 <&rcu0 0x48 11>;
+			reset-names = "acadma", "host", "acasl";
+			reg = <0x50000 0x800>,
+			      <0x5D000 0x400>,
+			      <0x5D400 0x800>,
+			      <0x5C000 0x1000>,
+			      <0x58000 0x4000>,
+			      <0x100000 0x800>;
+			reg-names = "host-reg",
+				    "genrisc-reg",
+				    "mac-ht-reg",
+				    "spram",
+				    "iram",
+				    "aca-mem";
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 29 IRQ_TYPE_LEVEL_HIGH>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_i2c1_slave>;
+			clocks = <&cgu0 PRX300_GCLK_AHIF>,
+				 <&cgu0 PRX300_GCLK_ASL>;
+			clock-names = "host", "sl";
+		};
+	};
+
+	ssx4@16000000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "lantiq,ssx", "simple-bus";
+		reg = <0x16000000 0x2000000>; /* 32MB */
+		ranges = <0x0 0x16000000 0x02000000>;
+
+		rcu0: reset-controller@100000 {
+			compatible = "lantiq,rcu-grx500", "syscon";
+			reg = <0x100000 0x80000>;
+			#reset-cells = <2>;
+			intel,global-reset = <0x10 30>;
+		};
+
+		sysconf: chiptop@180000 {
+			compatible = "lantiq,chiptop-grx500", "syscon", "simple-mfd";
+			reg = <0x180000 0x1000>;
+			#reset-cells = <1>;
+		};
+
+		ts: ts{
+			#thermal-sensor-cells = <1>;
+			compatible = "intel,ts-prx300";
+			intel,syscon = <&sysconf>; /* chiptop */
+		};
+
+		cgu0: cgu@200000 {
+			compatible = "intel,cgu-prx300", "syscon";
+			reg = <0x200000 0x810>;
+			#clock-cells = <1>;
+
+			osc0: osc0 {
+				#clock-cells = <0>;
+				compatible = "fixed-clock";
+				clock-frequency = <40000000>;
+				clock-output-names = "osc";
+			};
+
+			afeclk: afeclk {
+				#clock-cells = <0>;
+				compatible = "fixed-clock";
+				clock-frequency = <8000>;
+				clock-output-names = "afeclk";
+			};
+		};
+
+		aspa_cfg: aspa_cfg@210000 {
+			compatible = "syscon", "simple-mfd";
+			reg = <0x210000 0x10>;
+		};
+
+		/* internal-gphy firmware loader */
+		gphy_fw: phy-prx300@210100 {
+			status = "disabled";
+			compatible = "intel,phy-prx300";
+			reg = <0x210100 0x10>, <0x210080 0x80>;
+			reg-names = "gphy_cdb_pdi", "gphy_cdb_fcsi";
+			clocks = <&cgu0 PRX300_CLK_GPHY>;
+			clock-names = "freq";
+			resets = <&rcu0 0x10 29>, <&rcu0 0x48 28>,
+				 <&rcu0 0x48 27>;
+			reset-names = "gphy", "gphy_cdb", "gphy_pwr_down";
+			intel,syscon = <&sysconf>; /* chiptop */
+			intel,cgu-syscon = <&cgu0>;
+			intel,chipid-syscon = <&chipid>;
+			intel,aspa-syscon = <&aspa_cfg>;
+		};
+
+		pinctrl: pinctrl@310000 {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			compatible = "intel,pinctrl-xrx500";
+			reg = <0x310000 0x10000>;
+
+			pad {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				pad0: pad@0 {
+					reg = <0x0>;
+					intel,pinbase = <0>;
+					intel,ngpios = <32>;
+					intel,pinbank = <0>;
+					intel,gpio = <&gpio0>;
+				};
+
+				pad1: pad@100 {
+					status = "disabled";
+					reg = <0x100>;
+					intel,pinbase = <32>;
+					intel,ngpios = <8>;
+					intel,pinbank = <1>;
+					intel,gpio = <&gpio1>;
+				};
+			};
+
+			/* pin configurations */
+
+			pinctrl_qspi: qspi {
+				intel,pins =  <0>, /* QSCK */
+					      <1>, /* QSCS */
+					      <2>, /* QSIO0 */
+					      <3>, /* QSIO1 */
+					      <4>, /* QSIO2 */
+					      <5>; /* QSIO3 */
+				intel,function = "qspi";
+				intel,mux = <EQBR_MUX_2>;
+				intel,groups = "qspi";
+			};
+
+
+			pinctrl_ssi: ssi {
+				intel,pins =  <6>, /* SSI_CLKI */
+					      <7>, /* SSI_TX */
+					      <19>; /* SSI_CLKO */
+				intel,function = "ssi";
+				intel,mux = <EQBR_MUX_2>;
+				intel,groups = "ssi";
+			};
+
+			pinctrl_ssi_rx: ssi_rx {
+				intel,pins =  <8>; /* SSI_RX */
+				intel,function = "ssi";
+				intel,mux = <EQBR_MUX_2>;
+				intel,groups = "ssi_rx";
+				intel,pullup = <1>;
+			};
+
+			pinctrl_ssi_rst_io: ssi_rst_io {
+				intel,pins = <9>; /* SSI_RST via IO9 option */
+				intel,function = "ssi_rst_io";
+				intel,mux = <EQBR_MUX_2>;
+				intel,groups = "ssi_rst_io";
+			};
+
+			pinctrl_tdm: tdm {
+				intel,pins =  <9>, /* TDM_FSC */
+					      <18>, /* TDM_DCL */
+					      <24>, /* TDM_DI */
+					      <25>; /* TDM_DO */
+				intel,function = "tdm";
+				intel,mux = <EQBR_MUX_4>;
+				intel,groups = "tdm";
+			};
+
+			pinctrl_mdio0: mdio0 {
+				/* mdio0 (from xgmac1) */
+				intel,pins =  <10>, /* MDC0 */
+					      <11>; /* MDIO0 */
+				intel,function = "mdio0";
+				intel,mux = <EQBR_MUX_1>;
+				intel,groups = "mdio0";
+			};
+
+			pinctrl_mdio1: mdio1 {
+				/* mdio1 (from xgmac0) */
+				intel,pins =  <24>, /* MDC1 */
+					      <25>; /* MDIO1 */
+				intel,function = "mdio1";
+				intel,mux = <EQBR_MUX_1>;
+				intel,groups = "mdio1";
+			};
+
+			pinctrl_spi0: spi0 {
+				intel,pins =  <6>, /* SPI0_CLK */
+					      <7>, /* SPI0_TX */
+					      <8>; /* SPI0_RX */
+				intel,function = "spi0";
+				intel,mux = <EQBR_MUX_3>;
+				intel,groups = "spi0";
+			};
+
+			pinctrl_spi0_cs: spi0_cs {
+				intel,pins =  <9>; /* SPI0_CS */
+				intel,function = "spi0";
+				intel,mux = <EQBR_MUX_3>;
+				intel,groups = "spi0_cs";
+			};
+
+			/* The legacy SPI controller is connected to two
+			 * different sets of pins. This alternative mapping
+			 * is overlapping with the QSPI pins. Only the normal
+			 * or the alternative mapping should be selected.
+			 */
+			pinctrl_spi0_alt: spi0_alt {
+				intel,pins =  <4>, /* SPI0_CLK */
+					      <3>, /* SPI0_TX */
+					      <2>; /* SPI0_RX */
+				intel,function = "spi0";
+				intel,mux = <EQBR_MUX_3>;
+				intel,groups = "spi0_alt";
+			};
+
+			pinctrl_spi0_cs_alt: spi0_cs_alt {
+				intel,pins =  <5>; /* SPI0_CS */
+				intel,function = "spi0";
+				intel,mux = <EQBR_MUX_3>;
+				intel,groups = "spi0_cs_alt";
+			};
+
+			pinctrl_spi1: spi1 {
+				intel,pins =  <12>, /* SPI1_CLK */
+					      <13>, /* SPI1_TX */
+					      <17>; /* SPI1_RX */
+				intel,function = "spi1";
+				intel,mux = <EQBR_MUX_3>;
+				intel,groups = "spi1";
+			};
+
+			pinctrl_ledc: ledc {
+				intel,pins =  <14>, /* LED_SH */
+					      <15>, /* LED_ST */
+					      <16>; /* LED_D */
+				intel,function = "led";
+				intel,mux = <EQBR_MUX_2>;
+				intel,groups = "led";
+			};
+
+			pinctrl_pon_ip: pon_ip {
+				intel,pins =  <20>, /* OPT_RX_LOS / PONIP GPIO16 */
+					      <22>, /* OPT_TX_FAULT / PONIP GPIO18 */
+					      <23>, /* OPT_TX_SD / PONIP GPIO26 */
+					      <24>; /* OPT_TX_PUP / PONIP sfp_pon_ratesel_o[1] */
+				intel,function = "pon_ip";
+				intel,mux = <EQBR_MUX_2>;
+				intel,groups = "pon_ip";
+			};
+
+			/* This receives the OPT_TX_DIS_SFP in an SFP use case and forwards it to the PON IP GPIO0 */
+			pinctrl_pon_ip_sfp_tx_dis: pon_ip_sfp_tx_dis {
+				intel,pins =  <21>; /* OPT_GPIO0 / OPT_TX_DIS_SFP / PONIP GPIO0 */
+				intel,function = "pon_ip_sfp_tx_dis";
+				intel,mux = <EQBR_MUX_2>;
+				intel,groups = "pon_ip_sfp_tx_dis";
+			};
+
+			pinctrl_i2c0: i2c0 {
+				intel,pins =  <26>, /* I2C0_SCL */
+					      <27>; /* I2C0_SDA */
+				intel,function = "i2c0";
+				intel,mux = <EQBR_MUX_2>;
+				intel,groups = "i2c0";
+				intel,open-drain = <1>;
+			};
+			pinctrl_i2c0_gpio: i2c0_gpio {
+				intel,pins =  <26>, /* I2C0_SCL */
+					      <27>; /* I2C0_SDA */
+				intel,function = "gpio";
+				intel,mux = <EQBR_MUX_0>;
+				intel,groups = "i2c0_gpio";
+			};
+			pinctrl_i2c1: i2c1 {
+				intel,pins =  <10>, /* I2C1_SCL */
+					      <11>; /* I2C1_SDA */
+				intel,function = "i2c1";
+				intel,mux = <EQBR_MUX_2>;
+				intel,groups = "i2c1";
+			};
+
+			pinctrl_i2c1_slave: i2c1_slave {
+				intel,pins =  <10>, /* I2C1_SCL */
+					      <11>; /* I2C1_SDA */
+				intel,function = "gpio";
+				intel,mux = <EQBR_MUX_0>;
+				intel,groups = "i2c1_slave";
+			};
+
+			pinctrl_gpc1: gpc1 {
+				intel,pins =  <28>; /* GPC1 */
+				intel,function = "gpc1";
+				intel,mux = <EQBR_MUX_2>;
+				intel,groups = "gpc1";
+			};
+
+			pinctrl_gpc3: gpc3 {
+				intel,pins =  <29>; /* GPC3 */
+				intel,function = "gpc3";
+				intel,mux = <EQBR_MUX_2>;
+				intel,groups = "gpc3";
+				intel,output = <1>;
+			};
+
+			pinctrl_uart1: uart1 {
+				intel,pins =  <30>, /* UART1_RX */
+					      <31>; /* UART1_TX */
+				intel,function = "uart1";
+				intel,mux = <EQBR_MUX_1>;
+				intel,groups = "uart1";
+			};
+		};
+
+		gpio0: gpio@300000 {
+			gpio-controller;
+			#gpio-cells = <2>;
+			reg = <0x300000 0x80>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 172 IRQ_TYPE_LEVEL_HIGH>;
+			ngpios = <32>;
+			gpio-ranges = <&pinctrl 0 0 32>;
+		};
+
+		gpio1: gpio@300100 {
+			status = "disabled";
+			gpio-controller;
+			#gpio-cells = <2>;
+			reg = <0x300100 0x80>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 173 IRQ_TYPE_LEVEL_HIGH>;
+			ngpios = <8>;
+			gpio-ranges = <&pinctrl 0 32 8>;
+		};
+
+		sso: sso@320000 {
+			compatible = "lantiq,gpio-sso-xrx500";
+			reg = <0x320000 0x2CC>;
+			#gpio-cells = <2>;
+			gpio-controller;
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_ledc>;
+			clocks = <&cgu0 PRX300_GCLK_SSO>;
+			clock-names = "sso";
+			status = "disabled";
+		};
+
+		ssogpio: ssogpio@320000 {
+			compatible = "intel,sso-gpio", "syscon", "simple-mfd";
+			status = "disabled";
+			gpio-controller;
+			#gpio-cells = <2>;
+			reg = <0x320000 0x2cc>;
+			ngpios = <32>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_ledc>;
+			clocks = <&cgu0 PRX300_GCLK_SSO>;
+			clock-names = "sso";
+
+			ssoled:ssoled {
+				compatible = "intel,sso-led";
+				status = "disabled";
+				clocks = <&afeclk>;
+				clock-names = "fpid";
+				intel,gptc-clkrate = <200000000>;
+
+				ssi_rst_sso: ssi_rst_sso {
+			                label = "ssi_rst";
+					led-gpio = <&ssogpio 15 0>;
+					intel,led-pin = <15>;
+					intel,sso-hw-trigger;
+					intel,sso-brightness = <255>;
+					status = "disabled";
+				};
+			};
+		};
+
+
+		i2c0: i2c@340000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+			compatible = "lantiq,lantiq-i2c";
+			reg = <0x340000 0x10000>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 33 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 32 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 23 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 36 IRQ_TYPE_EDGE_RISING>;
+			clock-frequency = <100000>;
+			clocks = <&cgu0 PRX300_CLK_SSX4>, <&cgu0 PRX300_GCLK_I2C0>;
+			clock-names = "freq", "i2c";
+			pinctrl-names = "default", "gpio";
+			pinctrl-0 = <&pinctrl_i2c0>;
+			pinctrl-1 = <&pinctrl_i2c0_gpio>;
+			scl-gpios = <&gpio0 26 GPIO_ACTIVE_HIGH>;
+			sda-gpios = <&gpio0 27 GPIO_ACTIVE_HIGH>;
+		};
+
+		asc0: serial@380000 {
+			compatible = "lantiq,asc";
+			reg = <0x380000 0x40000>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 103 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SHARED 105 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SHARED 106 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cgu0 PRX300_CLK_SSX4>, <&cgu0 PRX300_GCLK_URT0>;
+			clock-names = "freq", "asc";
+		};
+
+		asc1: serial@3c0000 {
+			compatible = "lantiq,asc";
+			reg = <0x3c0000 0x40000>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 76 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SHARED 78 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SHARED 79 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cgu0 PRX300_CLK_SSX4>, <&cgu0 PRX300_GCLK_URT1>;
+			clock-names = "freq", "asc";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_uart1>;
+			status = "okay";
+		};
+
+		ssc0: spi@800000 {
+			compatible = "lantiq,spi-grx500","lantiq,spi-lantiq-ssc";
+			reg = <0x800000 0x100000>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 14 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 15 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 16 IRQ_TYPE_EDGE_RISING>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			clocks = <&cgu0 PRX300_CLK_SSX4>, <&cgu0 PRX300_GCLK_SPI0>;
+			clock-names = "freq", "spi";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_spi0 &pinctrl_spi0_cs>;
+
+			vcodec: vcodec@5 {
+				compatible = "lantiq,grx500-vcodec";
+				spi-max-frequency = <8000000>;
+				reg = <5>;
+				interrupts = <GIC_SHARED 209 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-parent = <&gic>;
+				clock-names = "clkout0", "vcodec";
+				clocks = <&cgu0 PRX300_CLK_SLIC>, <&cgu0 PRX300_GCLK_V_CODEC>;
+				reset-names = "vcodec";
+				resets = <&rcu0 0x48 0>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&pinctrl_ssi &pinctrl_ssi_rx &pinctrl_ssi_rst_io>;
+				slic: slic_0 {
+					compatible = "lantiq,slic200";
+					dcdc_type = "IBB";
+				};
+			};
+		};
+
+		ssc1: spi@900000 {
+			compatible = "lantiq,spi-grx500","lantiq,spi-lantiq-ssc";
+			reg = <0x900000 0x100000>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 99 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 100 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 101 IRQ_TYPE_EDGE_RISING>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			lantiq,ssc-port = <1>;
+			clocks = <&cgu0 PRX300_CLK_SSX4>, <&cgu0 PRX300_GCLK_SPI1>;
+			clock-names = "freq", "spi";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_spi1>;
+			status = "okay";
+		};
+
+		clocksource: gptc-phandle {
+			#gptc-cells = <4>;
+		};
+
+		gptc0: gptc@b00000 {
+			status = "disabled";
+			compatible = "intel,prx300-gptc";
+			reg = <0xb00000 0x400>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 118 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 120 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 122 IRQ_TYPE_EDGE_RISING>;
+			interrupt-names = "tc1a", "tc2a", "tc3a";
+			intel,clk = <&clocksource 1 0 1 1>, <&clocksource 3 1 0 1>, <&clocksource 0 2 0 1>;
+			clocks = <&cgu0 PRX300_CLK_SSX4>, <&cgu0 PRX300_GCLK_GPTC0>;
+			clock-names = "freq", "gptc";
+		};
+
+		gptc1: gptc@C00000 {
+			status = "disabled";
+			compatible = "intel,prx300-gptc";
+			reg = <0xC00000 0x400>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 160 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 162 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 164 IRQ_TYPE_EDGE_RISING>;
+			interrupt-names = "tc1a", "tc2a", "tc3a";
+			intel,clk = <&clocksource 1 0 0 1>, <&clocksource 1 1 2 1>, <&clocksource 1 2 3 1>;
+			clocks =<&cgu0 PRX300_CLK_SSX4>, <&cgu0 PRX300_GCLK_GPTC1>;
+			clock-names = "freq", "gptc";
+		};
+
+		dma0: dma@E00000 {
+			compatible = "lantiq,dma0-grx500", "lantiq,dma-xway";
+			reg = <0xE00000 0x100000>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 64 IRQ_TYPE_LEVEL_HIGH>;
+			lantiq,desc-num = <16>;
+			lantiq,dma-burst = <2>;
+			lantiq,dma-polling-cnt = <4>;
+			lantiq,dma-drb = <0>;
+			lantiq,budget = <20>;
+			clocks = <&cgu0 PRX300_GCLK_DMA0>;
+		};
+
+		i2c1: i2c@1D00000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+			compatible = "lantiq,lantiq-i2c";
+			reg = <0x1D00000 0x10000>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 33 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 32 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 23 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 36 IRQ_TYPE_EDGE_RISING>;
+			clock-frequency = <100000>;
+			clocks = <&cgu0 PRX300_CLK_SSX4>, <&cgu0 PRX300_GCLK_I2C1>;
+			clock-names = "freq", "i2c";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_i2c1>;
+		};
+
+		i2c2: i2c@1E00000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+			compatible = "lantiq,lantiq-i2c";
+			reg = <0x1E00000 0x10000>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 33 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 32 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 23 IRQ_TYPE_EDGE_RISING>,
+				<GIC_SHARED 36 IRQ_TYPE_EDGE_RISING>;
+			clock-frequency = <100000>;
+			clocks = <&cgu0 PRX300_CLK_SSX4>, <&cgu0 PRX300_GCLK_I2C2>;
+			clock-names = "freq", "i2c";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_i2c1>;
+		};
+	};
+
+	ssx1_1@18000000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "lantiq,ssx", "simple-bus";
+		reg = <0x18000000 0x2000000>; /* 32MB */
+		ranges = <0 0x18000000 0x02000000>;
+
+		ponmbox1: ponmbox@100000 {
+			compatible = "intel,prx300-pon-mbox";
+			reg =   <0x100000 0x80>,
+				<0xC00000 0x40000>,
+				<0xC40000 0x1000>;
+			reg-names = "ponip", "serdes", "phy_app";
+			status = "disabled";
+
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 87 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SHARED 88 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SHARED 90 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "receiver", "transmitter", "general";
+			clocks = <&cgu0 PRX300_GCLK_PON>, <&cgu0 PRX300_CLK_PONDEF>;
+			clock-names = "pon", "freq";
+			resets = <&rcu0 0x10 17>,
+				 <&rcu0 0x10 28>,
+				 <&rcu0 0x10 10>,
+				 <&rcu0 0x10 16>;
+			reset-names = "wanss", "ponip", "serdes", "xpcs";
+			intel,cgu-syscon = <&cgu0>;
+			intel,chiptop-syscon = <&sysconf>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_pon_ip>; /* Add &pinctrl_gpc3 to activate 1PPS output. */
+		};
+
+		dma1tx: dma@200000 {
+			compatible = "lantiq,dma-grx500";
+			reg = <0x200000 0x10000>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 65 IRQ_TYPE_LEVEL_HIGH>;
+			lantiq,dma-pkt-arb = <2>; /* 0 - burst, 1 - mulitburst, 2 - pkt */
+			lantiq,dma-burst = <16>; /* 2, 4, 8, 16 */
+			lantiq,dma-polling-cnt = <6>;
+			lantiq,dma-chan-fc = <1>;
+			lantiq,dma-desc-fod = <1>;
+			lantiq,dma-desc-in-sram = <0>; /* A11 - 0, A21 - 1*/
+			lantiq,dma-byte-en = <1>;
+			lantiq,dma-orrc = <8>;
+			lantiq,dma-txendi =<1>;
+			lantiq,dma-rxendi =<1>;
+			lantiq,budget = <20>;
+		};
+
+		dma1rx: dma@300000 {
+			compatible = "lantiq,dma-grx500";
+			reg = <0x300000 0x10000>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 66 IRQ_TYPE_LEVEL_HIGH>;
+			lantiq,dma-pkt-arb = <2>; /* 0 - burst, 1 - mulitburst, 2 - pkt */
+			lantiq,dma-burst = <16>; /* 2, 4, 8, 16 */
+			lantiq,dma-polling-cnt = <6>;
+			lantiq,dma-chan-fc = <0>;
+			lantiq,dma-desc-fod = <1>;
+			lantiq,dma-desc-in-sram = <0>;
+			lantiq,dma-byte-en = <0>;
+			lantiq,dma-txendi =<1>;
+			lantiq,dma-rxendi =<1>;
+			lantiq,budget = <20>;
+		};
+
+		gsw: gswitch@400000 {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			compatible = "intel,gswdev";
+			reg =	<0x400000 0x100000>;
+			ranges =<0x0 0x00400000 0x00100000>;
+			intel,gsw-devid = <0>;
+			resets = <&rcu0 0x10 21>;
+			reset-names = "gswip";
+
+			gsw_mac0:gsw_mac@0 {
+				status = "okay";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				compatible = "intel,gsw_mac";
+				num_resources = <2>;
+				reg =<	0x40000 0x2000 /* ADAPTION */
+					0x42000 0x3000 /* LMAC */
+					>;
+				ranges =<	0x0 0x00040000 0x00002000
+						0x1 0x00042000 0x00003000>;
+				interrupt-parent = <&gic>;
+				interrupts = <GIC_SHARED 45 IRQ_TYPE_LEVEL_HIGH>;
+				speed = <10000>;
+				phy-mode = "xgmii";
+				clocks = <&cgu0 PRX300_CLK_PTP>;
+				clock-names = "ptp_clk";
+				clock-frequency = <500000000>;
+				macsec = <0>;
+				phy-type = "ethernet";
+				mac_idx = <2>;
+				xpcs = <&wan_xpcs>;
+			};
+			gsw_mac1:gsw_mac@1 {
+				status = "okay";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				compatible = "intel,gsw_mac";
+				num_resources = <2>;
+				reg =<	0x40000 0x2000 /* ADAPTION */
+					0x42000 0x3000 /* LMAC */
+					>;
+				ranges =<	0x0 0x00040000 0x00002000
+						0x1 0x00042000 0x00003000>;
+				interrupt-parent = <&gic>;
+				interrupts = <GIC_SHARED 45 IRQ_TYPE_LEVEL_HIGH>;
+				speed = <10000>;
+				phy-mode = "xgmii";
+				clocks = <&cgu0 PRX300_CLK_PTP>;
+				clock-names = "ptp_clk";
+				clock-frequency = <500000000>;
+				macsec = <0>;
+				phy-type = "ethernet";
+				mac_idx = <3>;
+				xpcs = <&lan_xpcs0>;
+				mdio0: mdio {
+					#address-cells = <1>;
+					#size-cells = <0>;
+					gphy: ethernet-phy@1f {
+						reg = <0x1f>;
+						/* Gphy is not up yet at initial probe.
+						 * We set the phy-id here to avoid early
+						 * mdio-scan at that point.
+						 */
+						compatible = "ethernet-phy-id67c9.dc00",
+							     "ethernet-phy-ieee802.3-c22";
+						interrupt-parent = <&gic>;
+						interrupts = <GIC_SHARED 126 IRQ_TYPE_LEVEL_HIGH>;
+						status = "disabled";
+					};
+				};
+			};
+			gsw_mac2:gsw_mac@2 {
+				status = "okay";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				compatible = "intel,gsw_mac";
+				num_resources = <2>;
+				reg =<	0x40000 0x2000 /* ADAPTION */
+					0x42000 0x3000 /* LMAC */
+					>;
+				ranges =<	0x0 0x00040000 0x00002000
+						0x1 0x00042000 0x00003000>;
+				interrupt-parent = <&gic>;
+				interrupts = <GIC_SHARED 45 IRQ_TYPE_LEVEL_HIGH>;
+				speed = <10000>;
+				phy-mode = "xgmii";
+				clocks = <&cgu0 PRX300_CLK_PTP>;
+				clock-names = "ptp_clk";
+				clock-frequency = <500000000>;
+				macsec = <0>;
+				phy-type = "ethernet";
+				mac_idx = <4>;
+				xpcs = <&lan_xpcs1>;
+			};
+			gsw_core:gsw_core@0 {
+				#address-cells = <1>;
+				#size-cells = <1>;
+				compatible = "intel,gsw_core";
+				num_resources = <1>;
+				reg = <0x50000 0x4000>;
+				ranges = <0x0 0x00050000 0x00004000>;
+				interrupt-parent = <&gic>;
+				interrupts = <GIC_SHARED 48 IRQ_TYPE_LEVEL_HIGH>;
+				clocks = <&cgu0 PRX300_CLK_SW>, <&cgu0 PRX300_GCLK_SWITCH>;
+				clock-names = "freq", "gate";
+				gsw_mode = <0>;
+				intel,gsw-globalpce-rules = <64>;
+			};
+		};
+
+		dma2tx: dma@500000 {
+			compatible = "lantiq,dma-grx500";
+			reg = <0x500000 0x100000>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 67 IRQ_TYPE_LEVEL_HIGH>;
+			lantiq,dma-pkt-arb = <2>; /* 0 - burst, 1 - mulitburst, 2 - pkt */
+			lantiq,dma-burst = <16>; /* 2, 4, 8, 16 */
+			lantiq,dma-polling-cnt = <6>;
+			lantiq,dma-chan-fc = <1>;
+			lantiq,dma-desc-fod = <1>;
+			lantiq,dma-desc-in-sram = <0>;
+			lantiq,dma-byte-en = <1>;
+			lantiq,dma-txendi =<1>;
+			lantiq,dma-rxendi =<1>;
+			lantiq,dma-orrc = <8>;
+			lantiq,budget = <20>;
+		};
+
+		dma2rx: dma@600000 {
+			compatible = "lantiq,dma-grx500";
+			reg = <0x600000 0x100000>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 68 IRQ_TYPE_LEVEL_HIGH>;
+			lantiq,dma-pkt-arb = <2>; /* 0 - burst, 1 - mulitburst, 2 - pkt */
+			lantiq,dma-burst = <16>; /* 2, 4, 8, 16 */
+			lantiq,dma-polling-cnt = <6>;
+			lantiq,dma-chan-fc = <0>;
+			lantiq,dma-desc-fod = <1>;
+			lantiq,dma-desc-in-sram = <0>;
+			lantiq,dma-byte-en = <1>;
+			lantiq,dma-txendi =<1>;
+			lantiq,dma-rxendi =<1>;
+			lantiq,budget = <20>;
+		};
+
+		bm: bm@B00000 {
+			status = "okay";
+			compatible = "intel,prx300-bm";
+			reg-names =
+				"reg-config",
+				"ram-config",
+				"uc-mcdma0";
+			reg = < 0xB00000 0x10000 /*BM CONFIG*/
+				0xB10000 0x10000   /*BM POLICY RAM*/
+				0x850000 0x200   /*UC MCDMA0*/
+				>;
+			/* Buffer Manager Maximum supported policies */
+			intel,max-policies = <8>;
+			/* Buffer Manager Maximum supported group */
+			intel,max-groups = <2>;
+			/* Buffer Manager Maximum supported Buffer pools */
+			intel,max-pools = <4>;
+ 			clocks = <&cgu0 PRX300_CLK_NGI>, <&cgu0 PRX300_GCLK_PP>;
+ 			clock-names = "freq", "ppv4";
+		};
+
+		qos0: qos@846000 {
+			status = "okay";
+			compatible = "intel,prx300-ppv4qos";
+			reg-names =
+				"dccm",
+				"ivt",
+				"mbx-from-uc",
+				"mbx-to-uc",
+				"wake-uc";
+			reg = <
+				0x840000 0x8000
+				0x848000 0x400
+				0x850200 0x18
+				0x850260 0x18
+				0x851008 0x4
+			>;
+
+			intel,qos-max-port = <127>;
+			intel,wred-prioritize = <0>;
+			intel,clock-frequency-mhz = <500>;
+			intel,fw-sec-data-stack = <1 0 0x2000>; /* Is in dccm (0 for dynamically ddr allocation), Offset in DCCM, Size */
+
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 111 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
+		wan_xpcs_phy: phy {
+			compatible = "intel,wanxpcsphy-prx300";
+			reg = <0xC00000 0x40000>;
+			clocks = <&cgu0 PRX300_GCLK_SWREF>;
+			#phy-cells = <0>;
+			status = "okay";
+			resets = <&rcu0 0x10 10>, <&rcu0 0x10 17>;
+			reset-names = "phy", "wanss";
+			intel,syscon = <&sysconf>; /* chiptop */
+		};
+
+		cqm: cqm@A40000 {
+			status = "okay";
+			compatible = "intel,prx300-cqm";
+			reg = < 0xA40000 0x10000 /*TX PUSH DQM*/
+				0xF00000 0x100000   /*CQM DMA DESC*/
+				0x1010000 0x10000 /*CQM*/
+				0x1020000 0x4000 /*QIDT*/
+				0x1060000 0x10000 /*LS*/
+				0x1080000 0x20000 /*CQM ENQ*/
+				0x10C0000 0x40000 /*CBM DEQ*/
+				0x1140000 0x400 /*QID2EP_MAP*/
+				0x1200000 0x100000 /*FSQM*/
+				0x1100000 0x1000 /*CQEM PIB*/
+				0x1141000 0x100 /*CBM PON CNTR*/
+				>;
+				interrupt-parent = <&gic>;
+				interrupts = <GIC_SHARED 192 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SHARED 196 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SHARED 197 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SHARED 198 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SHARED 199 IRQ_TYPE_LEVEL_HIGH>;
+				resets = <&rcu0 0x10 8>;
+				reset-names = "cqm";
+				clocks = <&cgu0 PRX300_CLK_NGI>, <&cgu0 PRX300_GCLK_CQEM>;
+				clock-names = "freq", "cbm";
+				intel,syscon = <&sysconf>;
+				/* Total Number of Buffers in pools 0-4 */
+				intel,bm-buff-num = <0x25E40 0xb4c0 0x4640 0x7c0>;
+				/* Size of each buffer in pools 0-4*/
+				intel,bm-buff-size = <0x200 0x400 0x800 0x2800>;
+				/* Applicable only for A1 chip */
+				/* Total Number of Buffers in pool0 */
+				intel,bm-buff-num-a1 = <0xaf40>;
+				/* Size of each buffer in pool0 */
+				intel,bm-buff-size-a1 = <0x1000>;
+				/*
+				 * DQ port,
+				 * intel,deq-port = <port_num port_type>
+				 * port_type = 2 for CPU
+				 * port_type = 4 for MPE FW(if available)
+				 */
+				DQ0: cpu-port0 {
+						intel,deq-port = <0 2>;
+				};
+				DQ3: cpu-port3 {
+						intel,deq-port = <3 4>;
+				};
+		};
+
+		qspi0: qspi@1300000 {
+			compatible = "cadence,qspi";
+			reg = <0x1300000 0x1000>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 110 IRQ_TYPE_EDGE_RISING>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			num-chipselect = <1>;
+			fifo-depth = <128>;
+			ext-decoder = <0>;
+			bus-num = <0>;
+			lantiq,qspi-port = <0>;
+			lantiq,qspi-phyaddr = <0xB0000000>;
+			clocks = <&cgu0 PRX300_CLK_QSPI>, <&cgu0 PRX300_GCLK_QSPI>;
+			clock-names = "freq", "qspi";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_qspi>;
+			resets = <&rcu0 0x10 7>;
+			reset-names = "qspi";
+			status = "okay";
+		};
+
+		umt: umt@1110000 {
+			compatible = "intel,prx300-umt";
+			reg = <0x1110000 0x10000>; /* CQEM_UMT_CTRL */
+			clocks = <&cgu0 PRX300_CLK_NGI>;
+			clock-names = "freq";
+			status = "disabled";
+			intel,umt-byte-swap;
+		};
+
+		eth:eth@a00000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "lantiq,prx300-eth";
+			lantiq,eth-rx-csum-offload = <1>;
+			lantiq,eth-switch-mode = <0>;
+		};
+
+		vuni: vuni {
+			compatible = "intel,hgu-vuni";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0>;
+			status = "disabled";
+		};
+
+		pon_eth: pon_ethernet@2 {
+			compatible = "intel,prx300-pon";
+			reg = <2>;
+			status = "disabled";
+		};
+
+		pon_ptp0: pon_ptp@0 {
+			compatible = "intel,prx300-pon-ptp";
+			reg = <0>;
+			status = "disabled";
+		};
+
+		pon_ptp1: pon_ptp@1 {
+			compatible = "intel,prx300-pon-ptp";
+			reg = <1>;
+			status = "disabled";
+		};
+
+	};
+
+	ssx1_2@1A000000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "lantiq,ssx", "simple-bus";
+		reg = <0x1A000000 0xa6000000>;
+		ranges = <0 0x1A000000 0xa6000000>;
+
+		lan_xpcs0: lan_xpcs0@342000 {
+			compatible = "intel,xpcs";
+			status = "disabled";
+			reg =<0x342000 0x400 >;
+			reg-names = "xpcs_reg";
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 24 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "xpcs_irq";
+			phys = <&cb0phy0>;
+			phy-names = "phy";
+			resets = <&rcu0 0x10 14>;
+			reset-names = "xpcs_reset";
+			xpcs-name = "lan_xpcs0";
+			xpcs-mode = <2>; /* <0> - 10G_KR_MODE, <1> - 10G_XAUI_MODE, <2> - 1G_XAUI_MODE, <3> - 2P5G_GMII_MODE */
+			xpcs-conn = <0>; /* <0> - SFP, <1> - PHY */
+			power-save = <1>; /* 0 - Normal Mode, 1 - Power Save Mode */
+			serdes_1g_cfg = <&lan_xpcs0 0x4 0x4 0x10>;/* Pre, Post, Main */
+			serdes_10g_cfg = <&lan_xpcs0 0x10 0 0x24>;/* Pre, Post, Main */
+		};
+		lan_xpcs1: lan_xpcs1@842000 {
+			compatible = "intel,xpcs";
+			status = "disabled";
+			reg =<0x842000 0x400 >;
+			reg-names = "xpcs_reg";
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 25 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "xpcs_irq";
+			phys = <&cb0phy1>;
+			phy-names = "phy";
+			resets = <&rcu0 0x10 15>;
+			reset-names = "xpcs_reset";
+			xpcs-name = "lan_xpcs1";
+			xpcs-mode = <2>; /* <0> - 10G_KR_MODE, <1> - 10G_XAUI_MODE, <2> - 1G_XAUI_MODE, <3> - 2P5G_GMII_MODE */
+			xpcs-conn = <0>; /* <0> - SFP, <1> - PHY */
+			power-save = <1>; /* 0 - Normal Mode, 1 - Power Save Mode */
+			serdes_1g_cfg = <&lan_xpcs1 0x4 0x4 0x10>;/* Pre, Post, Main */
+			serdes_10g_cfg = <&lan_xpcs1 0x10 0 0x24>;/* Pre, Post, Main */
+		};
+	};
+	pcie0:pcie@1a400000 {
+		status = "disabled";
+		compatible = "intel,prx300-pcie";
+		device_type = "pci";
+		#address-cells = <3>;
+		#size-cells = <2>;
+		reg = <
+			0x1a400000 0x1000 /* RC controller */
+			0xbb000000 0x800000 /* Cfg */
+			0x1a341000 0x1000 /* App logic */
+			0x1a100000 0x100 /* MSI addr space */
+			0x1a200000 0x100 /* MSI PIC */
+		>;
+		reg-names = "csr", "cfg", "app", "msi", "pic";
+		linux,pci-domain = <0>;
+		max-link-speed = <3>;
+		bus-range = <0x00 0x08>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 128 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SHARED 129 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SHARED 130 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SHARED 131 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SHARED 132 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SHARED 133 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SHARED 134 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SHARED 135 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SHARED 152 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "msi0", "msi1", "msi2", "msi3", "msi4", "msi5", "msi6", "msi7", "ir";
+		#interrupt-cells = <1>;
+		interrupt-map-mask = <0 0 0 0x7>;
+		interrupt-map = <0 0 0 1 &gic  GIC_SHARED 136 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 2 &gic  GIC_SHARED 137 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 3 &gic  GIC_SHARED 138 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 4 &gic  GIC_SHARED 139 IRQ_TYPE_LEVEL_HIGH>;
+		ranges = <0x02000000 0 0xb8000000 0xb8000000 0 0x03000000    /* Non-pretechable memory 32bit */
+			  0x01000000 0 0xbb800000 0xbb800000 0 0x00010000     /* Downsream I/O */
+			 >;
+		resets = <&rcu0 0x10 22>;
+		reset-names =  "core";
+		intel,syscon = <&sysconf>;
+		intel,inbound-shift = <6>;
+		intel,outbound-shift = <4>;
+		intel,iatu = <1>;
+		clocks = <&cgu0 PRX300_GCLK_PCIE_CTRL0>;
+		clock-names ="ctl";
+		phys = <&cb0phy0>;
+		phy-names = "phy";
+	};
+
+	pcie1:pcie@1a900000 {
+		status = "disabled";
+		compatible = "intel,prx300-pcie";
+		device_type = "pci";
+		#address-cells = <3>;
+		#size-cells = <2>;
+		reg = <
+			0x1a900000 0x1000 /* RC controller */
+			0xbf000000 0x800000 /* Cfg */
+			0x1a841000 0x1000 /* App logic */
+			0x1a600000 0x1000 /* MSI phy space */
+			0x1a700000 0x100 /* MSI PIC */
+		>;
+		reg-names = "csr", "cfg", "app", "msi", "pic";
+		linux,pci-domain = <1>;
+		max-link-speed = <3>;
+		bus-range = <0x00 0x08>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 37 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SHARED 38 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SHARED 39 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SHARED 40 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SHARED 41 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SHARED 42 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SHARED 43 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SHARED 44 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SHARED 49 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "msi0", "msi1", "msi2", "msi3", "msi4", "msi5", "msi6", "msi7", "ir";
+		#interrupt-cells = <1>;
+		interrupt-map-mask = <0 0 0 0x7>;
+		interrupt-map = <0 0 0 1 &gic  GIC_SHARED 9 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 2 &gic  GIC_SHARED 10 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 3 &gic  GIC_SHARED 11 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 4 &gic  GIC_SHARED 12 IRQ_TYPE_LEVEL_HIGH>;
+		ranges = < 0x02000000 0 0xbc000000 0xbc000000 0 0x03000000    /* Non-pretechable memory 32bit */
+			   0x01000000 0 0xbf800000 0xbf800000 0 0x00100000    /* Downsream I/O */
+			 >;
+		resets =  <&rcu0 0x10 23>;
+		reset-names = "core";
+		intel,syscon = <&sysconf>;
+		intel,inbound-shift = <10>;
+		intel,outbound-shift = <8>;
+		intel,iatu = <1>;
+		clocks = <&cgu0 PRX300_GCLK_PCIE_CTRL1>;
+		clock-names ="ctl";
+		phys = <&cb0phy1>;
+		phy-names = "phy";
+	};
+
+	wan_xpcs: wan_xpcs@18C42000 {
+		compatible = "intel,xpcs";
+		status = "disabled";
+		reg =<0x18C42000 0x400 >;
+		reg-names = "xpcs_reg";
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 26 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "xpcs_irq";
+		phys = <&wan_xpcs_phy>;
+		phy-names = "phy";
+		resets = <&rcu0 0x10 16>;
+		reset-names = "xpcs_reset";
+		xpcs-name = "wan_xpcs";
+		xpcs-mode = <2>; /* <0> - 10G_KR_MODE, <1> - 10G_XAUI_MODE, <2> - 1G_XAUI_MODE, <3> - 2P5G_GMII_MODE */
+		xpcs-conn = <0>; /* <0> - SFP, <1> - PHY */
+		power-save = <1>; /* 0 - Normal Mode, 1 - Power Save Mode */
+		serdes_1g_cfg = <&wan_xpcs 0x4 0x4 0x10>;/* Pre, Post, Main */
+		serdes_10g_cfg = <&wan_xpcs 0x10 0 0x24>;/* Pre, Post, Main */
+	};
+
+	combophy0:combophy@0 {
+		compatible = "intel,combophy-prx300", "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		reg = <0x1A300000 0x600000>;
+		ranges = <0x0 0x1A300000 0x541000>;
+
+		resets = <&rcu0 0x10 18>;
+		reset-names = "phy";
+		intel,syscon = <&sysconf>; /* chiptop */
+
+		cb0phy0:cb0phy@0 {
+			compatible = "intel,combo-phy";
+			#phy-cells = <0>;
+			status = "disabled";
+			reg = <
+				0x0     0x40000 /* PHY CR reg */
+				0x40000 0x1000  /* PCIE PHY APP */
+			>;
+			reg-names = "cr", "pcie";
+			clocks = <&cgu0 PRX300_CLK_CBPHY>, <&cgu0 PRX300_GCLK_CBPHY0>;
+			clock-names = "freq", "phy";
+			resets = <&rcu0 0x10 12>;
+			reset-names = "phy";
+		};
+
+		cb0phy1:cb0phy@1 {
+			compatible = "intel,combo-phy";
+			#phy-cells = <0>;
+			status = "disabled";
+			reg = <
+				0x500000 0x40000 /* PHY CR reg */
+				0x540000 0x1000	 /* PCIE PHY APP */
+			>;
+			reg-names = "cr", "pcie";
+			clocks = <&cgu0 PRX300_CLK_CBPHY>, <&cgu0 PRX300_GCLK_CBPHY1>;
+			clock-names = "freq", "phy";
+			resets = <&rcu0 0x10 13>;
+			reset-names = "phy";
+		};
+	};
+
+	ssx1_3@1E000000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "lantiq,ssx", "simple-bus";
+		reg = <0x1E000000 0x2000000>; /* 32MB */
+		ranges = <0 0x1E000000 0x02000000>;
+
+		pmi@1100000 {
+			compatible = "lantiq,pmi-xrx500";
+			reg = <0x1100000 0x100>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 94 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
+		chipid: chipid@1107300 {
+			compatible = "syscon", "simple-mfd";
+			reg = <0x1107300 0xC0>;
+		};
+
+		mps@1107000 {
+			compatible = "intel,prx300-mps";
+			reg = <0x1107000 0x300>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 146 IRQ_TYPE_LEVEL_HIGH>, <GIC_SHARED 147 IRQ_TYPE_LEVEL_HIGH>;
+			lantiq,mbx = <&mpsmbx>;
+			pinctrl-names = "pcm";
+			pinctrl-0 = <&pinctrl_tdm>;
+		};
+
+		mpsmbx: mpsmbx@1200000 {
+			reg = <0x1200000 0x1000>;
+		};
+
+		mps2@1107400 {
+			compatible = "lantiq,prx300-mps2","lantiq,mps2-xrx500" ;
+			reg = <0x1107400 0x300>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 215 IRQ_TYPE_LEVEL_HIGH>, <GIC_SHARED 216 IRQ_TYPE_LEVEL_HIGH>;
+			lantiq,mbx = <&mps2mbx>;
+		};
+
+		mps2mbx: mps2mbx@1201000 {
+			reg = <0x1201000 0x1000>;
+		};
+	};
+
+	ssx7@a0000000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "lantiq,ssx", "simple-bus";
+		reg = <0xA0000000 0x4000>;
+		ranges = <0x0 0xA0000000 0x00004000>;
+
+		mpe: mpe@1000000 {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			compatible = "lantiq,mpe-xrx500";
+			reg = <0x1000000 0x200000>;
+			dtlk_vpe_num = <1>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 246 IRQ_TYPE_EDGE_RISING>;
+		};
+	};
+
+	thermal-zones {
+		cpu_thermal0: cpu-thermal0 {
+			polling-delay-passive = <500>; /* milliseconds */
+			polling-delay = <1000>; /* milliseconds */
+
+			thermal-sensors = <&ts 0>;
+
+			trips {
+				cpu_alert0: cpu-alert0 {
+					temperature = <115000>; /* millicelsius */
+					hysteresis = <5000>; /* millicelsius */
+					type = "passive";
+				};
+				cpu_crit0: cpu-crit0 {
+					temperature = <125000>; /* millicelsius */
+					hysteresis = <10000>; /* millicelsius */
+					type = "critical";
+				};
+			};
+
+			cooling-maps {
+				map0 {
+					trip = <&cpu_alert0>;
+					cooling-device = <&cpu0 2 2>;
+				};
+			};
+		};
+		cpu_thermal1: cpu-thermal1 {
+			polling-delay-passive = <500>; /* milliseconds */
+			polling-delay = <1000>; /* milliseconds */
+
+			thermal-sensors = <&ts 1>;
+
+			trips {
+				cpu_alert1: cpu-alert1 {
+					temperature = <115000>; /* millicelsius */
+					hysteresis = <5000>; /* millicelsius */
+					type = "passive";
+				};
+				cpu_crit1: cpu-crit1 {
+					temperature = <125000>; /* millicelsius */
+					hysteresis = <10000>; /* millicelsius */
+					type = "critical";
+				};
+			};
+		};
+	};
+};

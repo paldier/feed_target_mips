@@ -1,0 +1,64 @@
+#include <dt-bindings/gpio/gpio.h>
+#include "prx321-sfu.dtsi"
+
+/******************************************************************************
+ ** Board configuration: Enable Shift register LED board configuration.
+ ******************************************************************************/
+&ssogpio {
+
+	aquantia_reset {
+		gpio-hog;
+		gpios = <13 GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "aquantia_reset";
+	};
+};
+
+&ssoled {
+	/*
+	 * All pin numbers here are (31-original number) for the V1.1 board.
+	 * For the dual color leds the label uses the same number to indicate
+	 * the connection.
+	 */
+	led5: led5 {
+		label = "led5:green:pon";
+		led-gpio = <&ssogpio 5 GPIO_ACTIVE_HIGH>;
+		intel,led-pin = <5>;
+	};
+	led6: led6 {
+		label = "led5:red:pon";
+		led-gpio = <&ssogpio 6 GPIO_ACTIVE_HIGH>;
+		intel,led-pin = <6>;
+	};
+	led7: led7 {
+		label = "led7:green:voice0";
+		led-gpio = <&ssogpio 7 GPIO_ACTIVE_HIGH>;
+		intel,led-pin = <7>;
+	};
+	led8: led8 {
+		label = "led8:green:voice1";
+		led-gpio = <&ssogpio 8 GPIO_ACTIVE_HIGH>;
+		intel,led-pin = <8>;
+	};
+	led9: led9 {
+		/* in HW manual this is the DECT LED */
+		label = "led9:green:status";
+		led-gpio = <&ssogpio 9 GPIO_ACTIVE_HIGH>;
+		intel,led-pin = <9>;
+	};
+	led2: led2 {
+		label = "led2:green:gphy";
+		led-gpio = <&ssogpio 2 GPIO_ACTIVE_HIGH>;
+		intel,led-pin = <2>;
+	};
+	led3: led3 {
+		label = "led2:red:gphy";
+		led-gpio = <&ssogpio 3 GPIO_ACTIVE_HIGH>;
+		intel,led-pin = <3>;
+	};
+	led4: led4 {
+		label = "led4:yellow:gphy";
+		led-gpio = <&ssogpio 4 GPIO_ACTIVE_HIGH>;
+		intel,led-pin = <4>;
+	};
+};

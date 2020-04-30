@@ -1,0 +1,16 @@
+/*****************************************************************
+** Include main configuration file
+*****************************************************************/
+#include "easy550_anywan_axepoint.dts"
+
+/ {
+	model = "EASY550 ANYWAN (GRX550) Axepoint Router model";
+};
+
+/******************************************************************************
+** Model configuration: Arrange specific FW to run on VPEs. 
+******************************************************************************/
+/* use CPU1 for Linux */
+&cpu1 {
+	default-OS = "LINUX";
+};

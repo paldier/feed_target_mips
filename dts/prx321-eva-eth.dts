@@ -1,0 +1,53 @@
+/dts-v1/;
+#include "prx321-eva.dtsi"
+
+/ {
+	model = "PRX321-EVA-ETH";
+	compatible = "intel,prx321-eva-eth", "intel,prx321-eva", "intel,prx300";
+
+	chosen {
+		stdout-path = "serial0";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x20000000 0x40000000>; /* 1024 MB */
+	};
+};
+
+/* temporary disable qspi nand during bringup due to board issue,
+   we use spi nand as fallback option */
+&ssc0 {
+	status = "okay";
+	ltq-spinand@1 {
+		status = "okay";
+	};
+};
+
+&qspi0 {
+	status = "disabled";
+};
+
+&cb0phy0 {
+	intel,mode = <1>; /*0-pcie, 1-xpcs*/
+	status = "okay";
+	intel,rx-auto-adapt = <1>;
+};
+
+&cb0phy1 {
+	intel,mode = <1>; /*0-pcie, 1-xpcs*/
+	status = "okay";
+	intel,rx-auto-adapt = <1>;
+};
+
+&wan_xpcs {
+	status = "okay";
+};
+
+&lan_xpcs0 {
+	status = "okay";
+};
+
+&lan_xpcs1 {
+	status = "okay";
+};

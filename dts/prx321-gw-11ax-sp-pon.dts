@@ -1,0 +1,62 @@
+/dts-v1/;
+#include "prx321-gw-11ax-sp.dtsi"
+
+/* Model configuration */
+/ {
+	model = "PRX321-GW-11AX-SP-PON";
+	compatible = "intel,prx321-gw-11ax-sp-pon", "intel,prx300";
+
+	chosen {
+		stdout-path = "serial0";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x20000000 0x40000000>; /* 1024 MB */
+	};
+};
+
+&pcie1 {
+	reset-gpios = <&gpio0 29 GPIO_ACTIVE_HIGH>;
+};
+
+&vuni {
+	status = "okay";
+	vani@0 {
+		intel,extra-subif = <0>;
+	};
+};
+
+&wan_xpcs_phy {
+	status = "disabled";
+};
+
+&i2c0 {
+	status = "okay";
+
+	/* EEPROM of the optical WAN transceiver */
+	eeprom@50 {
+		compatible = "at,24c02";
+		reg = <0x50>;
+	};
+	eeprom@51 {
+		compatible = "at,24c02";
+		reg = <0x51>;
+	};
+};
+
+&pon_eth {
+	status = "okay";
+};
+
+&pon_ptp0 {
+	status = "okay";
+};
+
+&pon_ptp1 {
+	status = "okay";
+};
+
+&ponmbox1 {
+	status = "okay";
+};

@@ -1,0 +1,52 @@
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "lantiq,grx500";  
+    interrupt-parent = <&eic>;
+
+	cpus {
+		cpu@0 {
+			compatible = "mips,mips4Kc";
+			default-OS = "LINUX";
+		};
+	
+	};
+
+    eic: interrupt-controller@0x14900140 {
+        compatible = "mips,mips4Kc-eic";
+        #interrupt-cells = <1>;
+        #address-cells = <0>;
+        interrupt-controller;
+        reg = <0x14900140 0x24>;
+    };
+
+	sysrst {
+		compatible = "intel,sysrst-prx300";
+		/* add required rcu definition here */
+		resets = <&rcu0 0x10 1>, <&rcu0 0x10 30>, <&rcu0 0x48 0>;
+		reset-names = "TEP", "GLB_SW", "VCODEC";
+		sw-arbitration-delay-us = <0>, <0>, <1>;
+	};
+
+	watchdog@0,0 {
+		compatible = "lantiq,bootcorewdt","lantiq, wdt-bootcore-xrx500"; 
+		reg = <0 0>;
+		timeout-sec-T2 = <30>;
+		timeout-sec-T3 = <60>;
+	};
+
+	ssx4@16000000 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "lantiq,ssx", "simple-bus";
+		reg = <0x16000000 0x2000000>; /* 32MB */
+		ranges = <0x0 0x16000000 0x02000000>;
+
+		rcu0: reset-controller@100000 {
+			compatible = "lantiq,rcu-grx500", "syscon";
+			reg = <0x100000 0x80000>;
+			#reset-cells = <2>;
+			intel,global-reset = <0x10 30>;
+		};
+	};
+};

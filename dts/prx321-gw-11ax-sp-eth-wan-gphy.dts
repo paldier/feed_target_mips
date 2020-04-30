@@ -1,0 +1,69 @@
+/dts-v1/;
+#include "prx321-gw-11ax-sp.dtsi"
+
+/* Model configuration */
+/ {
+	model = "PRX321-GW-11AX-SP-ETH-WAN-GPHY";
+	compatible = "intel,prx321-gw-11ax-sp-eth-wan-gphy", "intel,prx300";
+
+	chosen {
+		stdout-path = "serial0";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x20000000 0x40000000>; /* 1024 MB */
+	};
+};
+
+&eth {
+	wan: interface@5 {
+		compatible = "lantiq,xrx500-pdi";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <5>;
+		lantiq,wan = <1>;
+		intel,dp-dev-port = <2>;
+		intel,dp-port-id = <2>;
+		mac = <&gsw_mac0>;
+
+		ethernet@5 {
+			compatible = "lantiq,xrx500-pdi-port";
+			reg = <1>;
+			phy-mode = "rgmii";
+			phy-handle = <&external_gphy>;
+		};
+	};
+};
+
+&wan_xpcs {
+	status = "okay";
+	xpcs-conn = <1>; /* PHY */
+};
+
+/* mdio pins for external gphy */
+&gsw_mac0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_mdio1>;
+	mdio {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		external_gphy: ethernet-phy@2 {
+			compatible = "ethernet-phy-idd565.a401",
+				     "ethernet-phy-ieee802.3-c22";
+			reg = <0x2>;
+			interrupts = <27 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-parent = <&gpio0>;
+		};
+	};
+};
+
+&gpio0 {
+	/* external GPHY reset */
+	phy_reset26 {
+		gpio-hog;
+		gpios = <26 GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "phy_reset26";
+	};
+};

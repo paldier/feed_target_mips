@@ -7,7 +7,7 @@ CPU_TYPE:=24kc
 CPU_SUBTYPE:=nomips16
 
 KERNEL_PATCHVER:=4.9
-LINUX_VERSION:=4.9.176
+LINUX_VERSION:=4.9.206
 
 DEFAULT_PACKAGES+=kmod-intel_eth_drv_xrx500 ltq-gphy-fw-xrx5xx
 

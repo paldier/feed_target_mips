@@ -1,0 +1,235 @@
+#include <dt-bindings/gpio/gpio.h>
+#include "prx300.dtsi"
+
+&i2c0 {
+	status = "okay";
+
+	/* EEPROM of the optical WAN transceiver */
+	eeprom@50 {
+		compatible = "at,24c02";
+		reg = <0x50>;
+	};
+	eeprom@51 {
+		compatible = "at,24c02";
+		reg = <0x51>;
+	};
+
+	/* EEPROM of the MACOM optical WAN transceiver */
+	/* The datasheet says these are at,24c08, but then probe will fail. */
+	eeprom@4e {
+		compatible = "at,24c02";
+		reg = <0x4e>;
+		pagesize = <16>;
+	};
+	eeprom@4f {
+		compatible = "at,24c02";
+		reg = <0x4f>;
+		pagesize = <16>;
+	};
+};
+
+
+/******************************************************************************
+ ** Board configuration: Configure LAN/WAN interfaces
+ ******************************************************************************/
+&eth {
+	status = "okay";
+
+	lan1: interface@1 {
+		compatible = "lantiq,xrx500-pdi";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <1>;
+		intel,dp-dev-port = <4>;
+		intel,dp-port-id = <4>;
+		mac = <&gsw_mac2>;
+		intel,lct-en = <1>;
+		intel,extra-subif = <3>;
+
+		ethernet@1 {
+			compatible = "lantiq,xrx500-pdi-port";
+			reg = <2>;
+			phy-mode = "rgmii";
+		};
+	};
+
+	wan: interface@5 {
+		compatible = "lantiq,xrx500-pdi";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <5>;
+		lantiq,wan = <1>;
+		intel,dp-dev-port = <2>;
+		intel,dp-port-id = <2>;
+		mac = <&gsw_mac0>;
+
+		ethernet@5 {
+			compatible = "lantiq,xrx500-pdi-port";
+			reg = <1>;
+			phy-mode = "rgmii";
+		};
+	};
+};
+
+/* This is needed to improve qspi stability on the board */
+&pinctrl_qspi {
+	intel,slew-rate = <1>;
+	intel,drive-current = <3>;
+};
+
+&ssc0 {
+	status = "disabled";
+	pinctrl-0 = <&pinctrl_spi0_alt &pinctrl_spi0_cs_alt>;
+
+	ltq-spinand@1 {
+		status = "disabled";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		reg = <1>;
+		compatible = "lantiq,spinand";
+		linux,mtd-name = "nand.0";
+		spi-max-frequency = <15384615>;
+	};
+};
+
+&qspi0 {
+	status = "disabled";
+
+	ltq-spinand@0 {
+		status = "disabled";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "lantiq,spinand";
+		reg = <0 1>;
+		linux,mtd-name = "nand.0";
+		spi-max-frequency = <50000000>;
+		page-size = <2048>;
+		block-size = <17>; // 2^17, 128KB
+		spi-tx-bus-width = <4>;
+		spi-rx-bus-width = <4>;
+
+		/* Read-delay is needed for higher freq.
+		 * 2 ref_clk is chosen as value that works well upto
+		 * spi-freq 50MHz (with ref_clk 100MHz).
+		 */
+		read-delay = <2>;
+		tshsl-ns = <200>;
+		tsd2d-ns = <255>;
+		tchsh-ns = <20>;
+		tslch-ns = <20>;
+	};
+};
+
+&wan_xpcs {
+	status = "disabled";
+	xpcs-conntype = "SFP"; /* SFP or PHY */
+};
+
+&lan_xpcs1 {
+	status = "disabled";
+	xpcs-conntype = "SFP"; /* SFP or PHY */
+};
+
+/*Bit0 denotes - qos mode 0 - "full_qos", 1 - "short_cut" */
+/*Bit1 denotes - link speed 0 - "10G", 1 - "others" */
+/*0 - 10G full qos*/
+/*1 - 10G short cut*/
+/*2 - 1G full qos*/
+/*3 - 1G short cut*/
+&gsw_core {
+	gsw_mode = <0>;
+};
+
+/******************************************************************************
+ ** Select single CPU mode to avoid problems with the I2C Slave emulation
+ ******************************************************************************/
+
+&cpu1 {
+	default-OS = "NONE";
+	/delete-property/ operating-points-v2;
+};
+
+&cpu2 {
+	default-OS = "NONE";
+	/delete-property/ operating-points-v2;
+};
+
+&cpu3 {
+	default-OS = "NONE";
+	/delete-property/ operating-points-v2;
+};
+
+&cpu_opp_table {
+	opp@800000000 {
+		status = "disabled";
+	};
+};
+
+/** I2C Slave emulation with EEPROM */
+&sfp_i2c {
+	status = "okay";
+	gpio-moddef0 = <&gpio0 8 GPIO_ACTIVE_HIGH>;
+};
+
+&pinctrl {
+	rx_los_disabled: rx-los-disabled {
+		intel,groups = "rx_los_dis";
+		intel,function = "gpio";
+		intel,pins = <25>;
+		intel,mux = <EQBR_MUX_0>;
+	};
+
+	rx_los_enabled: rx-los-enabled {
+		intel,groups = "rx_los_en";
+		intel,function = "pon_ip";
+		intel,pins = <25>;
+		intel,mux = <EQBR_MUX_2>;
+	};
+
+	pin_1pps_disabled: pin_1pps-disabled {
+		intel,groups = "1pps_dis";
+		intel,function = "gpio";
+		intel,pins = <29>;
+		intel,mux = <EQBR_MUX_0>;
+	};
+
+	ntr_disabled: ntr-disabled {
+		intel,groups = "ntr_dis";
+		intel,function = "gpio";
+		intel,pins = <28>;
+		intel,mux = <EQBR_MUX_0>;
+	};
+
+	ntr_enabled: ntr-enabled {
+		intel,groups = "ntr_en";
+		intel,function = "pon_ip";
+		intel,pins = <28>;
+		intel,mux = <EQBR_MUX_2>;
+	};
+};
+
+/ {
+	pinselect_rx_los: pinselect-rx-los {
+		compatible = "intel,pon-pinselect-rx-los";
+		pinctrl-names = "default","disable","enable";
+		pinctrl-0 = <&rx_los_disabled>;
+		pinctrl-1 = <&rx_los_disabled>;
+		pinctrl-2 = <&rx_los_enabled>;
+	};
+
+	pinselect-1pps {
+		compatible = "intel,pon-pinselect-1pps";
+		pinctrl-names = "default","disable","enable";
+		pinctrl-0 = <&pin_1pps_disabled>;
+		pinctrl-1 = <&pin_1pps_disabled>;
+		pinctrl-2 = <&pinctrl_gpc3>;
+	};
+
+	pinselect-ntr {
+		compatible = "intel,pon-pinselect-ntr";
+		pinctrl-names = "default","disable","enable";
+		pinctrl-0 = <&ntr_disabled>;
+		pinctrl-1 = <&ntr_disabled>;
+		pinctrl-2 = <&ntr_enabled>;
+	};
+};

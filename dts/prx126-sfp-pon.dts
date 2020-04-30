@@ -1,0 +1,71 @@
+/dts-v1/;
+#include "prx126-sfp.dtsi"
+
+/ {
+	model = "PRX126-SFP-PON";
+	compatible = "intel,prx126-sfp-pon", "intel,prx126-sfp-eva-pon", "intel,prx126", "intel,prx300";
+
+	chosen {
+		stdout-path = "serial0";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x20000000 0x40000000>; /* 1024 MB */
+	};
+};
+
+&wan {
+	status = "disabled";
+};
+
+&wan_xpcs_phy {
+	status = "disabled";
+};
+
+&wan_xpcs {
+	status = "disabled";
+};
+
+&pon_eth {
+	status = "okay";
+};
+
+&pon_ptp0 {
+	status = "okay";
+};
+
+&pon_ptp1 {
+	status = "okay";
+};
+
+&ponmbox1 {
+	status = "okay";
+	pinctrl-0 = <&pinctrl_pon_ip &pinctrl_pon_ip_sfp_tx_dis>;
+};
+
+&qspi0 {
+	status = "okay";
+	ltq-spinand@0 {
+		status = "okay";
+		/* reduce freq to avoid issue in sfp+ */
+		spi-max-frequency = <25000000>;
+		spi-tx-bus-width = <1>;
+		spi-rx-bus-width = <1>;
+	};
+};
+
+&cb0phy1 {
+	intel,mode = <1>; /*0-pcie, 1-xpcs*/
+	status = "okay";
+};
+
+&lan_xpcs1 {
+	status = "okay";
+	xpcs-mode = <0>; /* 0 - 10G_KR_MODE, 1 - 10G_XAUI_MODE, 2 - 1G_XAUI_MODE, 3 - 2P5G_GMII_MODE */
+};
+
+&pinselect_rx_los {
+	/* RX-LOS is not multiplexed with other signals, enable by default */
+	pinctrl-0 = <&rx_los_enabled>;
+};

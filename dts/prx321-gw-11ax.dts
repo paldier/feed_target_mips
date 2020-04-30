@@ -1,0 +1,193 @@
+/dts-v1/;
+#include <dt-bindings/interrupt-controller/mips-gic.h>
+#include <dt-bindings/gpio/gpio.h>
+#include "prx300.dtsi"
+
+/* Model configuration */
+/ {
+	model = "PRX321-GW-11AX";
+	compatible = "intel,prx321-gw-11ax", "intel,prx300";
+
+	chosen {
+		stdout-path = "serial0";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x20000000 0x40000000>; /* 1024 MB */
+	};
+};
+
+/******************************************************************************
+ ** Board configuration: Enable PCIe board configuration.
+ ** PCIE sub-system feature configuration, the pcie0/1 are defined in Soc level
+ ******************************************************************************/
+&cb0phy0 {
+	intel,mode = <0>; /*0-pcie, 1-xpcs*/
+	status = "okay";
+};
+
+&cb0phy1 {
+	intel,mode = <0>; /*0-pcie, 1-xpcs*/
+	status = "okay";
+};
+
+&pcie0 {
+	status = "okay";
+	intel,rst-interval = <200>;
+	intel,inbound-swap = <1>;
+	intel,outbound-swap = <0>;
+	reset-gpios = <&gpio0 18 GPIO_ACTIVE_LOW>;
+	num-lanes = <1>;
+};
+
+&pcie1 {
+	status = "okay";
+	intel,rst-interval = <200>;
+	intel,inbound-swap = <1>;
+	intel,outbound-swap = <0>;
+	resets = <&rcu0 0x10 23>, <&rcu0 0x10 0>;
+	reset-names = "core", "rcu_rst";
+	num-lanes = <1>;
+};
+
+/******************************************************************************
+ ** Board configuration: Enable Shift register LED board configuration.
+ ******************************************************************************/
+&ssogpio {
+	status = "disabled";
+
+};
+
+&ssoled {
+	status = "disabled";
+
+	/* led definition */
+	intel,sso-def-brightness = <0>; /* default off */
+	intel,sso-def-blinkrate = <4>; /* HZ*/
+	 /* blink rate list: 2, 4, 8, 10, 50K, 100K, 200K, 250K, 1000K */
+};
+
+/******************************************************************************
+ ** Board configuration: Configure LAN/WAN interfaces
+ ******************************************************************************/
+&eth {
+	status = "okay";
+
+	lan1: interface@1 {
+		compatible = "lantiq,xrx500-pdi";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <1>;
+		intel,dp-dev-port = <4>;
+		intel,dp-port-id = <4>;
+		mac = <&gsw_mac2>;
+
+		lan1_eth: ethernet@1 {
+			compatible = "lantiq,xrx500-pdi-port";
+			reg = <2>;
+			phy-mode = "rgmii";
+			phy-handle = <&gphy>;
+		};
+	};
+};
+
+&vuni {
+	status = "okay";
+	vani@0 {
+		intel,extra-subif = <0>;
+	};
+};
+
+&cqm {
+	/* Total Number of Buffers in pool0 */
+	intel,bm-buff-num = <0xaf40>;
+	/* Size of each buffer in pool0 */
+	intel,bm-buff-size = <0x1000>;
+};
+
+&pinctrl_qspi {
+	intel,slew-rate = <1>;
+	intel,drive-current = <3>;
+};
+
+&qspi0 {
+	status = "okay";
+	ltq-spinand@0 {
+		status = "okay";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "lantiq,spinand";
+		reg = <0 1>;
+		linux,mtd-name = "nand.0";
+		spi-max-frequency = <50000000>;
+		page-size = <2048>;
+		block-size = <17>; // 2^17, 128KB
+		spi-tx-bus-width = <4>;
+		spi-rx-bus-width = <4>;
+
+		/* Read-delay is needed for higher freq.
+		 * 2 ref_clk is chosen as value that works well upto
+		 * spi-freq 50MHz (with ref_clk 100MHz).
+		 */
+		read-delay = <2>;
+		tshsl-ns = <200>;
+		tsd2d-ns = <255>;
+		tchsh-ns = <20>;
+		tslch-ns = <20>;
+	};
+};
+
+&gphy_fw {
+	status = "okay";
+};
+
+&gphy {
+	status = "okay";
+};
+
+&umt {
+	status = "okay";
+};
+
+&watchdog {
+	/* individual reset controls that need to
+	 * explicitly asserted during reset
+	 */
+	resets = <&rcu0 0x10 29>;
+	reset-names = "gphy";
+};
+
+&wan_xpcs_phy {
+	status = "disabled";
+};
+
+&i2c0 {
+	status = "okay";
+
+	/* EEPROM of the optical WAN transceiver */
+	eeprom@50 {
+		compatible = "at,24c02";
+		reg = <0x50>;
+	};
+	eeprom@51 {
+		compatible = "at,24c02";
+		reg = <0x51>;
+	};
+};
+
+&pon_eth {
+	status = "okay";
+};
+
+&pon_ptp0 {
+	status = "okay";
+};
+
+&pon_ptp1 {
+	status = "okay";
+};
+
+&ponmbox1 {
+	status = "okay";
+};

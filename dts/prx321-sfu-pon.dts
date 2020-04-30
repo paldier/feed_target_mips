@@ -1,0 +1,45 @@
+/dts-v1/;
+#include "prx321-sfu-11.dtsi"
+
+/ {
+	model = "PRX321-SFU-PON";
+	compatible = "intel,prx321-sfu-pon", "intel,prx321-sfu", "intel,prx300";
+
+	chosen {
+		stdout-path = "serial0";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x20000000 0x40000000>; /* 1024 MB */
+	};
+};
+
+&pon_eth {
+	status = "okay";
+};
+
+&pon_ptp0 {
+	status = "okay";
+};
+
+&pon_ptp1 {
+	status = "okay";
+};
+
+&ponmbox1 {
+	status = "okay";
+};
+
+/* temporary disable qspi nand during bringup due to board issue,
+   we use spi nand as fallback option */
+&ssc0 {
+	status = "okay";
+	ltq-spinand@1 {
+		status = "okay";
+	};
+};
+
+&qspi0 {
+	status = "disabled";
+};
