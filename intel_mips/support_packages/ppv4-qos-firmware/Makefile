@@ -22,7 +22,6 @@ PKG_HASH:=d8f63903d2f2c9fc311d717a19108b924f02c076f99397dcd7872beae6508be5
 STRIP=/bin/true
 RSTRIP=/bin/true
 
-include $(INCLUDE_DIR)/package-version-override.mk
 include $(INCLUDE_DIR)/package.mk
 
 define Package/$(PKG_NAME)
