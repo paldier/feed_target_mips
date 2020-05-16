@@ -1,0 +1,9 @@
+Index: linux-4.9.206/Makefile
+===================================================================
+--- linux-4.9.206.orig/Makefile
++++ linux-4.9.206/Makefile
+@@ -1751,3 +1751,4 @@ FORCE:
+ # Declare the contents of the .PHONY variable as phony.  We keep that
+ # information in a variable so we can use it in if_changed and friends.
+ .PHONY: $(PHONY)
++
