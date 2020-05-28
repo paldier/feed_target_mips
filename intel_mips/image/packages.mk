@@ -30,7 +30,7 @@ DEBUG_PACKAGES:=caltest csd-capitest csd-debug csd-csdutil_dbg pad ltq-pm-util m
 
 DECT_PACKAGES_SEC_DEBUG:=ltq_hanfun_agent
 
-OWRT_PACKAGES:=luci firewall luci-theme-openwrt base-files-owrt \
+OWRT_PACKAGES:=firewall base-files-owrt \
         owrt-qos-scripts owrt-mcast-scripts owrt-sys-scripts owrt-dsl-scripts owrt-ppa-scripts
 
 AX_PACKAGES:=base-files-sdl-axepoint
