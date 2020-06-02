@@ -1,29 +1,12 @@
-. /lib/functions/lantiq.sh
-
-PART_NAME=firmware
-REQUIRE_IMAGE_METADATA=1
-
 platform_check_image() {
-	return 0
+        return 0
 }
 
-platform_pre_upgrade() {
-	local board=$(lantiq_board_name)
+platform_do_upgrade() {
+        CI_UBIPART="system_sw"
+        CI_ROOTPART="rootfsA"
+        CI_KERNPART="kernelA"
 
-	case "$board" in
-	BTHOMEHUBV2B|BTHOMEHUBV3A|BTHOMEHUBV5A|P2812HNUF* )
-		nand_do_upgrade $1
-		;;
-	esac
+        nand_upgrade_tar "$1"
 }
 
-# use default for platform_do_upgrade()
-
-disable_watchdog() {
-	killall watchdog
-	( ps | grep -v 'grep' | grep '/dev/watchdog' ) && {
-		echo 'Could not disable watchdog'
-		return 1
-	}
-}
-append sysupgrade_pre_upgrade disable_watchdog

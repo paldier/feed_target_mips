@@ -257,5 +257,6 @@ define Device/NETGEAR_RAX40
   DEVICE_PACKAGES := $(OWRT_PACKAGES) $(DSL_CPE_PACKAGES)
   IMAGES := sysupgrade.bin fullimage.img fullimage.signed
   IMAGE/fullimage.signed = fullimage 16 | check-size $$$$(IMAGE_SIZE) | rax40sign
+  IMAGE/sysupgrade.bin := sysupgrade-tar
 endef
 TARGET_DEVICES += NETGEAR_RAX40
