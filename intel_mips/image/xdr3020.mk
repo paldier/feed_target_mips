@@ -1,0 +1,11 @@
+ifeq ($(SUBTARGET),xrx500)
+
+define Device/TPLINK_XDR3020
+  $(Device/xrx500)
+  DEVICE_DTS := tplink_xdr3020
+  DEVICE_TITLE := Tplink xdr3020
+  DEVICE_PACKAGES := $(OWRT_PACKAGES) $(DSL_CPE_PACKAGES)
+endef
+TARGET_DEVICES += TPLINK_XDR3020
+
+endif
