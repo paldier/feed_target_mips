@@ -116,6 +116,7 @@ include falcon.mk
 include xrx500.mk
 include axp.mk
 -include rax40.mk
+-include xdr3020.mk
 include svip_be.mk
 include svip_le.mk
 
