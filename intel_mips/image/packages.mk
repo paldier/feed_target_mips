@@ -67,6 +67,8 @@ GFAST_CO_PACKAGES:=dsl-vnx101-firmware dsl-gfast-api-vnx101 dsl-gfast-init-co
 
 WAV500_PACKAGES:= ltq-wlan-wave_5_x ltq-wlan-wave_5_x-rflib kmod-Lantiq-wlan-wave-support-5_x
 
+WAV500_PACKAGES_PREBUILD:= ltq-wlan-wave_5_x_pre ltq-wlan-wave_5_x-rflib_pre kmod-Lantiq-wlan-wave-support-5_x
+
 WAV500_UGW_PACKAGES:= fapi_wlan_vendor_wave fapi_wlan_common libwlan
 
 WAV600_PACKAGES:=ltq-wlan-wave_6x iwlwav-driver kmod-iwlwav-driver-kernel iwlwav-hostap iwlwav-iw iwlwav-tools ltq-wlan-wave6x-rflib kmod-lantiq-wlan-wave-support_6x crda_wave_6x
