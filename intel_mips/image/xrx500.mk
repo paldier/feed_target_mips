@@ -230,21 +230,21 @@ TARGET_DEVICES += GRX350_1600_V1_VDSL35B_11AC
 
 endif
 
-define Device/PHICOMM_K3C
-  $(Device/xrx500)
-  DEVICE_DTS := k3c
-  DEVICE_TITLE := Phicomm k3c 11AC Dual Band Wifi OpenWRT Ethernet Router
-  DEVICE_PACKAGES := $(OWRT_PACKAGES) $(WAV500_PACKAGES_PREBUILD)
-endef
-TARGET_DEVICES += PHICOMM_K3C
+#define Device/PHICOMM_K3C
+#  $(Device/xrx500)
+#  DEVICE_DTS := k3c
+#  DEVICE_TITLE := Phicomm k3c 11AC Dual Band Wifi OpenWRT Ethernet Router
+#  DEVICE_PACKAGES := $(OWRT_PACKAGES) $(WAV500_PACKAGES_PREBUILD)
+#endef
+#TARGET_DEVICES += PHICOMM_K3C
 
-define Device/ASUS_BLUECAVE
-  $(Device/xrx500)
-  DEVICE_DTS := bluecave
-  DEVICE_TITLE := Asus bluecave 11AC Dual Band Wifi OpenWRT Ethernet Router
-  DEVICE_PACKAGES := $(OWRT_PACKAGES) $(WAV500_PACKAGES_PREBUILD)
-endef
-TARGET_DEVICES += ASUS_BLUECAVE
+#define Device/ASUS_BLUECAVE
+#  $(Device/xrx500)
+#  DEVICE_DTS := bluecave
+#  DEVICE_TITLE := Asus bluecave 11AC Dual Band Wifi OpenWRT Ethernet Router
+#  DEVICE_PACKAGES := $(OWRT_PACKAGES) $(WAV500_PACKAGES_PREBUILD)
+#endef
+#TARGET_DEVICES += ASUS_BLUECAVE
 
 #define Device/PHICOMM_K3C_AX
 #  $(Device/xrx500)
