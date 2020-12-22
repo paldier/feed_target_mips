@@ -78,6 +78,15 @@ define Device/AX3000_1600_ETH_11AXUCI
 endef
 TARGET_DEVICES += AX3000_1600_ETH_11AXUCI
 
+define Device/AX3000_1600_ETH_11AXUCI_ASURADA
+  $(Device/xrx500)
+  DEVICE_DTS := easy350_anywan_axepoint_asurada
+  DEVICE_TITLE := GRX350 1600 AXEPOINT 6X WAV600 Ethernet Router UCI Model
+  ROOTFS_PREPARE := add-servicelayer-schema
+  DEVICE_PACKAGES := $(UGW_PACKAGES_SDL) $(WAV600_PACKAGES_UCI) $(WAV600_UGW_PACKAGES_UCI)
+endef
+TARGET_DEVICES += AX3000_1600_ETH_11AXUCI_ASURADA
+
 define Device/AX6000_2000_ETH_11AXUCI
   $(Device/xrx500)
   DEVICE_DTS := easy550_anywan_axepoint
@@ -234,10 +243,10 @@ endif
 
 define Device/PHICOMM_K3C
   $(Device/xrx500)
-  DEVICE_DTS := k3c
+  DEVICE_DTS := phicomm_k3c
   IMAGES := sysupgrade.bin fullimage.img
-  DEVICE_TITLE := Phicomm k3c 11AC Dual Band Wifi OpenWRT Ethernet Router
-  DEVICE_PACKAGES := $(OWRT_PACKAGES) $(DSL_CPE_PACKAGES) wav500_ax_image
+  DEVICE_TITLE := Phicomm k3c
+  DEVICE_PACKAGES := $(OWRT_PACKAGES) $(DSL_CPE_PACKAGES)
 endef
 TARGET_DEVICES += PHICOMM_K3C
 
@@ -246,18 +255,18 @@ TARGET_DEVICES += PHICOMM_K3C
 #  DEVICE_DTS := bluecave
 #  IMAGES := sysupgrade.bin fullimage.img
 #  DEVICE_TITLE := Asus bluecave 11AC Dual Band Wifi OpenWRT Ethernet Router
-#  DEVICE_PACKAGES := $(OWRT_PACKAGES) $(DSL_CPE_PACKAGES) wav500_ax_image
+#  DEVICE_PACKAGES := $(OWRT_PACKAGES) $(DSL_CPE_PACKAGES)
 #endef
 #TARGET_DEVICES += ASUS_BLUECAVE
 
-#define Device/PHICOMM_K3CA1
-#  $(Device/xrx500)
-#  DEVICE_DTS := k3ca1
-#  IMAGES := sysupgrade.bin fullimage.img
-#  DEVICE_TITLE := Phicomm k3c a1
-#  DEVICE_PACKAGES := $(OWRT_PACKAGES) $(DSL_CPE_PACKAGES) wav500_ax_image
-#endef
-#TARGET_DEVICES += PHICOMM_K3C_AX
+define Device/PHICOMM_K3CA1
+  $(Device/xrx500)
+  DEVICE_DTS := phicomm_k3ca1
+  IMAGES := sysupgrade.bin fullimage.img
+  DEVICE_TITLE := Phicomm k3c a1
+  DEVICE_PACKAGES := $(OWRT_PACKAGES) $(DSL_CPE_PACKAGES)
+endef
+TARGET_DEVICES += PHICOMM_K3CA1
 
 ifeq ($(SUBTARGET),xrx500_4kec)
 
