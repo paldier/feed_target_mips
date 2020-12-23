@@ -245,6 +245,7 @@ define Device/PHICOMM_K3C
   $(Device/xrx500)
   DEVICE_DTS := phicomm_k3c
   IMAGES := sysupgrade.bin fullimage.img
+  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
   DEVICE_TITLE := Phicomm k3c
   DEVICE_PACKAGES := $(OWRT_PACKAGES) $(DSL_CPE_PACKAGES)
 endef
@@ -254,6 +255,7 @@ TARGET_DEVICES += PHICOMM_K3C
 #  $(Device/xrx500)
 #  DEVICE_DTS := bluecave
 #  IMAGES := sysupgrade.bin fullimage.img
+#  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
 #  DEVICE_TITLE := Asus bluecave 11AC Dual Band Wifi OpenWRT Ethernet Router
 #  DEVICE_PACKAGES := $(OWRT_PACKAGES) $(DSL_CPE_PACKAGES)
 #endef
@@ -263,6 +265,7 @@ define Device/PHICOMM_K3CA1
   $(Device/xrx500)
   DEVICE_DTS := phicomm_k3ca1
   IMAGES := sysupgrade.bin fullimage.img
+  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
   DEVICE_TITLE := Phicomm k3c a1
   DEVICE_PACKAGES := $(OWRT_PACKAGES) $(DSL_CPE_PACKAGES)
 endef
