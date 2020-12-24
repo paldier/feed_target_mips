@@ -255,6 +255,10 @@ gpio-leds {
 };
 };
 
+&ssoled {
+	status = "disabled";
+};
+
 &pcie0 {
 	reset-gpios = <&gpio0 18 GPIO_ACTIVE_LOW>;
 };
